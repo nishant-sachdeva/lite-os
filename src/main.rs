@@ -11,8 +11,7 @@ use lite_os::println;
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-
-    loop {}
+    lite_os::hlt_loop();
 }
 
 #[cfg(test)]
@@ -31,6 +30,5 @@ pub extern "C" fn _start() -> ! {
     test_main();
 
     println!("It did not crash!");
-
-    loop {} // we need to loop forever because the _start function cannot return
+    lite_os::hlt_loop();
 }

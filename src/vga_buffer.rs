@@ -143,7 +143,11 @@ macro_rules! println {
 #[doc(hidden)] // hide this function from the generated documentation
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    WRITER.lock().write_fmt(args).unwrap(); // write the arguments to the writer
+    use x86_64::instructions::interrupts; // disable interrupts while the writer is locked
+
+    interrupts::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap(); // write the arguments to the writer
+    });
 }
 
 #[test_case]
@@ -160,10 +164,16 @@ fn test_println_many() {
 
 #[test_case]
 fn test_println_output() {
+    use core::fmt::Write; // for the write! macro
+    use x86_64::instructions::interrupts; // for the without_interrupts function
     let s = "Some test string that fits on a single line";
-    println!("{}", s);
-    for (i, c) in s.chars().enumerate() { // enumerate returns an iterator over the characters in the string
-        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read(); // read the character from the buffer
-        assert_eq!(char::from(screen_char.ascii_character), c); // compare the character to the one in the string
-    }
+
+    interrupts::without_interrupts(|| { // disable interrupts while the writer is locked
+        let mut writer = WRITER.lock(); // lock the writer
+        writeln!(writer, "\n{}", s).expect("writeln failed"); // write the string to the writer
+        for (i, c) in "Some test string".chars().enumerate() { // enumerate returns an iterator over the characters in the string
+            let screen_char = writer.buffer.chars[BUFFER_HEIGHT - 2][i].read(); // read the character from the buffer
+            assert_eq!(char::from(screen_char.ascii_character), c); // compare the character to the one in the string
+        }
+    });
 }
