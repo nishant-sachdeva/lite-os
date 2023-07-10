@@ -5,6 +5,8 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 
+use core::panic::PanicInfo;
+
 pub mod serial;
 pub mod vga_buffer;
 pub mod interrupts;
@@ -64,7 +66,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     exit_qemu(QemuExitCode::Success);
 }
 
-pub fn test_panic_handler(info: &core::panic::PanicInfo) -> ! {
+pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
@@ -79,7 +81,6 @@ pub extern "C" fn _start() -> ! {
     hlt_loop();
 }
 
-use core::panic::PanicInfo;
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
